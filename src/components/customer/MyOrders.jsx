@@ -3,12 +3,13 @@ import { useApp } from '../../context/AppContext';
 import { getOrdersByCustomer } from '../../utils/storage';
 
 const STATUS_COLORS = {
-  Pending: 'badge-warning',
-  Confirmed: 'badge-info',
-  Preparing: 'badge-info',
+  'Pending': 'badge-warning',
+  'Payment Submitted': 'badge-info',
+  'Confirmed': 'badge-info',
+  'Preparing': 'badge-info',
   'Out for Delivery': 'badge-warning',
-  Delivered: 'badge-success',
-  Cancelled: 'badge-danger',
+  'Delivered': 'badge-success',
+  'Cancelled': 'badge-danger',
 };
 
 export default function MyOrders() {
@@ -89,6 +90,11 @@ export default function MyOrders() {
                       <span className={`badge ${STATUS_COLORS[selected.status] || 'badge-secondary'}`}>
                         {selected.status}
                       </span>
+                      {selected.status === 'Payment Submitted' && (
+                        <div className="text-sm text-muted" style={{ marginTop: '0.25rem' }}>
+                          ⏳ Awaiting shop confirmation
+                        </div>
+                      )}
                     </td>
                   </tr>
                   <tr>

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import ShopManagement from './ShopManagement';
 import ProductManagement from './ProductManagement';
 import OrderManagement from './OrderManagement';
 import Analytics from './Analytics';
+import { getOrdersByVendor } from '../../utils/storage';
 
 const TABS = [
   { id: 'shop', label: '🏪 My Shop', icon: '🏪' },
@@ -15,6 +16,15 @@ const TABS = [
 export default function VendorDashboard() {
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState('shop');
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    // Refresh pending count after visiting the orders tab (orders may have been confirmed)
+    if (activeTab !== 'orders') {
+      const orders = getOrdersByVendor(user.id);
+      setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+    }
+  }, [user.id, activeTab]);
 
   return (
     <div className="dashboard-layout">
@@ -30,6 +40,14 @@ export default function VendorDashboard() {
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
+            {tab.id === 'orders' && pendingCount > 0 && (
+              <span
+                className="badge badge-danger"
+                style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}
+              >
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
