@@ -6,6 +6,7 @@ import {
   deleteProduct,
   generateId,
 } from '../../utils/storage';
+import ImageUpload from '../shared/ImageUpload';
 
 const EMOJI_MAP = {
   'Mobile Accessories': '📱',
@@ -30,6 +31,7 @@ const emptyForm = {
   stock: '',
   colors: '',
   category: '',
+  image: '',
 };
 
 export default function ProductManagement() {
@@ -64,6 +66,7 @@ export default function ProductManagement() {
       stock: String(product.stock),
       colors: (product.colors || []).join(', '),
       category: product.category || '',
+      image: product.image || '',
     });
     setError('');
     setShowModal(true);
@@ -101,6 +104,7 @@ export default function ProductManagement() {
         ? form.colors.split(',').map((c) => c.trim()).filter(Boolean)
         : [],
       category: form.category.trim() || user.shopCategory,
+      image: form.image,
       createdAt: editProduct ? editProduct.createdAt : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -138,6 +142,7 @@ export default function ProductManagement() {
           <table className="table">
             <thead>
               <tr>
+                <th>Image</th>
                 <th>Product</th>
                 <th>Price</th>
                 <th>Stock</th>
@@ -148,6 +153,17 @@ export default function ProductManagement() {
             <tbody>
               {products.map((p) => (
                 <tr key={p.id}>
+                  <td>
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '0.25rem' }}
+                      />
+                    ) : (
+                      <span style={{ fontSize: '1.5rem' }}>{shopEmoji}</span>
+                    )}
+                  </td>
                   <td>
                     <div className="fw-bold">{p.name}</div>
                     {p.description && (
@@ -268,6 +284,12 @@ export default function ProductManagement() {
                 placeholder="Red, Blue, Green"
               />
             </div>
+            <ImageUpload
+              label="Product Image"
+              value={form.image}
+              onChange={(val) => setForm((prev) => ({ ...prev, image: val }))}
+              placeholder="Click to upload a product photo"
+            />
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                 Cancel

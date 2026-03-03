@@ -95,9 +95,18 @@ export default function ShopBrowser() {
               fontSize: '5rem',
               borderRadius: '0.5rem',
               marginBottom: '1.5rem',
+              overflow: 'hidden',
             }}
           >
-            {CATEGORY_EMOJI[selectedShop.shopCategory] || '📦'}
+            {selectedProduct.image ? (
+              <img
+                src={selectedProduct.image}
+                alt={selectedProduct.name}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              CATEGORY_EMOJI[selectedShop.shopCategory] || '📦'
+            )}
           </div>
           <h2 style={{ marginBottom: '0.5rem' }}>{selectedProduct.name}</h2>
           <div className="price-tag mb-2">₹{selectedProduct.price.toFixed(2)}</div>
@@ -197,9 +206,17 @@ export default function ShopBrowser() {
                 <div
                   className="product-card-img"
                   onClick={() => setSelectedProduct(p)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', overflow: 'hidden' }}
                 >
-                  {CATEGORY_EMOJI[selectedShop.shopCategory] || '📦'}
+                  {p.image ? (
+                    <img
+                      src={p.image}
+                      alt={p.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    CATEGORY_EMOJI[selectedShop.shopCategory] || '📦'
+                  )}
                 </div>
                 <div className="product-card-body">
                   <div

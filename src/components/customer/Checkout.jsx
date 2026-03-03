@@ -117,11 +117,19 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
                 {vendor && vendor.upiId ? (
                   <>
                     <div className="qr-placeholder mb-2" style={{ margin: '0.5rem auto' }}>
-                      <div>
-                        <div style={{ fontSize: '2rem' }}>🔲</div>
-                        <div style={{ marginTop: '0.5rem' }}>QR Code for</div>
-                        <div className="fw-bold">{vendor.upiId}</div>
-                      </div>
+                      {vendor.qrCodeImage ? (
+                        <img
+                          src={vendor.qrCodeImage}
+                          alt={`QR Code for ${vendor.upiId}`}
+                          style={{ maxWidth: '180px', maxHeight: '180px', objectFit: 'contain', borderRadius: '0.5rem' }}
+                        />
+                      ) : (
+                        <div>
+                          <div style={{ fontSize: '2rem' }}>🔲</div>
+                          <div style={{ marginTop: '0.5rem' }}>QR Code for</div>
+                          <div className="fw-bold">{vendor.upiId}</div>
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{
