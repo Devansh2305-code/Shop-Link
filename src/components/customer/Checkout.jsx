@@ -55,7 +55,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
         })),
         total: vendorTotal,
         paymentMethod: form.paymentMethod,
-        status: 'Pending',
+        status: form.paymentMethod === 'UPI' ? 'Payment Submitted' : 'Pending',
         createdAt: new Date().toISOString(),
       };
       saveOrder(order);
@@ -71,7 +71,9 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
         <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
         <h2 style={{ color: '#10b981', marginBottom: '0.5rem' }}>Order Placed Successfully!</h2>
         <p className="text-muted mb-3">
-          Your order has been sent to the vendor. You can track it in My Orders.
+          {form.paymentMethod === 'UPI'
+            ? 'Payment submitted! Awaiting shop confirmation. You can track it in My Orders.'
+            : 'Your order has been sent to the vendor. You can track it in My Orders.'}
         </p>
         <button className="btn btn-primary" onClick={onOrderPlaced}>
           View My Orders

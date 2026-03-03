@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { getOrdersByVendor, saveOrder } from '../../utils/storage';
 
-const STATUS_OPTIONS = ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+const STATUS_OPTIONS = ['Pending', 'Payment Submitted', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
 const STATUS_COLORS = {
-  Pending: 'badge-warning',
-  Confirmed: 'badge-info',
-  Preparing: 'badge-info',
+  'Pending': 'badge-warning',
+  'Payment Submitted': 'badge-info',
+  'Confirmed': 'badge-info',
+  'Preparing': 'badge-info',
   'Out for Delivery': 'badge-warning',
-  Delivered: 'badge-success',
-  Cancelled: 'badge-danger',
+  'Delivered': 'badge-success',
+  'Cancelled': 'badge-danger',
 };
 
 export default function OrderManagement() {
@@ -52,16 +53,33 @@ export default function OrderManagement() {
       ) : (
         <div className="grid-2">
           <div>
-            <div style={{ fontWeight: 700, marginBottom: '0.75rem', color: '#374151' }}>
-              All Orders ({orders.length})
-            </div>
+            {(() => {
+              const pendingCount = orders.filter((o) => o.status === 'Payment Submitted').length;
+              return (
+                <div style={{ fontWeight: 700, marginBottom: '0.75rem', color: '#374151' }}>
+                  All Orders ({orders.length})
+                  {pendingCount > 0 && (
+                    <span
+                      className="badge badge-danger"
+                      style={{ marginLeft: '0.5rem', fontSize: '0.75rem' }}
+                    >
+                      {pendingCount} needs confirmation
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
             {orders.map((order) => (
               <div
                 key={order.id}
                 className="card mb-2"
                 style={{
                   cursor: 'pointer',
-                  border: selected?.id === order.id ? '2px solid #4f46e5' : '1px solid #e5e7eb',
+                  border: selected?.id === order.id
+                    ? '2px solid #4f46e5'
+                    : order.status === 'Payment Submitted'
+                    ? '2px solid #f59e0b'
+                    : '1px solid #e5e7eb',
                 }}
                 onClick={() => setSelected(order)}
               >
@@ -79,6 +97,11 @@ export default function OrderManagement() {
                     </span>
                   </div>
                 </div>
+                {order.status === 'Payment Submitted' && (
+                  <div className="text-sm" style={{ color: '#d97706', marginTop: '0.4rem', fontWeight: 600 }}>
+                    ⚠️ Payment received? Click to confirm.
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -144,6 +167,15 @@ export default function OrderManagement() {
                   </tfoot>
                 </table>
                 <div style={{ marginTop: '1rem' }}>
+                  {selected.status === 'Payment Submitted' && (
+                    <button
+                      className="btn btn-success btn-full"
+                      style={{ marginBottom: '0.75rem' }}
+                      onClick={() => handleStatusChange(selected, 'Confirmed')}
+                    >
+                      ✅ Confirm Payment Received
+                    </button>
+                  )}
                   <label className="form-label">Update Status</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {STATUS_OPTIONS.map((s) => (
