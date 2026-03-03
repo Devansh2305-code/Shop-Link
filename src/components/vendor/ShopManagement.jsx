@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { saveUser, findUserById } from '../../utils/storage';
 
@@ -14,6 +14,32 @@ export default function ShopManagement() {
   const [deliveryMode, setDeliveryMode] = useState(user.deliveryMode || 'instant');
   const [scheduledTime, setScheduledTime] = useState(user.scheduledTime || '');
   const [saved, setSaved] = useState(false);
+  const [toggleSaved, setToggleSaved] = useState(false);
+  const toggleTimerRef = useRef(null);
+  const savedTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(toggleTimerRef.current);
+      clearTimeout(savedTimerRef.current);
+    };
+  }, []);
+
+  function handleToggleShop(e) {
+    const newStatus = e.target.checked;
+    setShopOpen(newStatus);
+    const updated = {
+      ...user,
+      shopOpen: newStatus,
+      deliveryMode,
+      scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
+    };
+    saveUser(updated);
+    refreshUser(user.id);
+    setToggleSaved(true);
+    clearTimeout(toggleTimerRef.current);
+    toggleTimerRef.current = setTimeout(() => setToggleSaved(false), 2000);
+  }
 
   function handleSave() {
     const updated = {
@@ -25,7 +51,8 @@ export default function ShopManagement() {
     saveUser(updated);
     refreshUser(user.id);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   }
 
   return (
@@ -43,7 +70,7 @@ export default function ShopManagement() {
                 <input
                   type="checkbox"
                   checked={shopOpen}
-                  onChange={(e) => setShopOpen(e.target.checked)}
+                  onChange={handleToggleShop}
                 />
                 <span className="toggle-slider" />
               </span>
@@ -57,6 +84,11 @@ export default function ShopManagement() {
               ? 'Your shop is visible to customers and accepting orders.'
               : 'Your shop is hidden from customers.'}
           </p>
+          {toggleSaved && (
+            <div className="alert alert-success" style={{ marginTop: '0.5rem', padding: '0.4rem 0.75rem' }}>
+              ✅ Shop status updated!
+            </div>
+          )}
         </div>
 
         <div className="card">
