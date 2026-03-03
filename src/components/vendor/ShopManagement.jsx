@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { saveUser, findUserById } from '../../utils/storage';
 
@@ -14,6 +14,10 @@ export default function ShopManagement() {
   const [deliveryMode, setDeliveryMode] = useState(user.deliveryMode || 'instant');
   const [scheduledTime, setScheduledTime] = useState(user.scheduledTime || '');
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setShopOpen(user.shopOpen || false);
+  }, [user.shopOpen]);
 
   function handleSave() {
     const updated = {
