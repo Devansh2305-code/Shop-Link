@@ -82,43 +82,72 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
 
   // UPI payment step
   if (upiStep) {
-    const firstVendorId = Object.keys(byVendor)[0];
-    const vendor = findUserById(firstVendorId);
+    const vendorEntries = Object.entries(byVendor);
 
     return (
       <div>
         <h2 className="page-title">💳 UPI Payment</h2>
-        <div className="card" style={{ maxWidth: '480px', margin: '0 auto', textAlign: 'center' }}>
+        <div className="card" style={{ maxWidth: '540px', margin: '0 auto', textAlign: 'center' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
           <h3 style={{ marginBottom: '0.5rem' }}>Pay via UPI</h3>
           <p className="text-muted mb-2">
-            Scan the QR code or pay to the UPI ID below
+            {vendorEntries.length > 1
+              ? 'Your cart has items from multiple shops. Please pay each vendor separately.'
+              : 'Scan the QR code or pay to the UPI ID below.'}
           </p>
 
-          {vendor && vendor.upiId ? (
-            <>
-              <div className="qr-placeholder mb-2">
-                <div>
-                  <div style={{ fontSize: '2rem' }}>🔲</div>
-                  <div style={{ marginTop: '0.5rem' }}>QR Code for</div>
-                  <div className="fw-bold">{vendor.upiId}</div>
-                </div>
+          {vendorEntries.map(([vendorId, group]) => {
+            const vendor = findUserById(vendorId);
+            const vendorTotal = group.items.reduce(
+              (sum, item) => sum + item.price * item.quantity,
+              0
+            );
+            return (
+              <div
+                key={vendorId}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  textAlign: 'center',
+                }}
+              >
+                <div className="fw-bold mb-1">🏪 {group.vendorName}</div>
+                {vendor && vendor.upiId ? (
+                  <>
+                    <div className="qr-placeholder mb-2" style={{ margin: '0.5rem auto' }}>
+                      <div>
+                        <div style={{ fontSize: '2rem' }}>🔲</div>
+                        <div style={{ marginTop: '0.5rem' }}>QR Code for</div>
+                        <div className="fw-bold">{vendor.upiId}</div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        padding: '0.5rem',
+                        background: '#f3f4f6',
+                        borderRadius: '0.5rem',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      <div className="text-sm text-muted">UPI ID</div>
+                      <div className="fw-bold">{vendor.upiId}</div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="alert alert-info mb-1">
+                    Vendor has not set up UPI. Please ask them for payment details.
+                  </div>
+                )}
+                <div className="price-tag">₹{vendorTotal.toFixed(2)}</div>
               </div>
-              <div style={{ padding: '0.75rem', background: '#f3f4f6', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                <div className="text-sm text-muted">UPI ID</div>
-                <div className="fw-bold" style={{ fontSize: '1.1rem' }}>{vendor.upiId}</div>
-              </div>
-            </>
-          ) : (
-            <div className="alert alert-info mb-2">
-              Vendor has not set up UPI. Please ask them for payment details.
-            </div>
-          )}
+            );
+          })}
 
-          <div className="price-tag mb-3">Total: ₹{total.toFixed(2)}</div>
-
+          <div className="price-tag mb-2">Grand Total: ₹{total.toFixed(2)}</div>
           <p className="text-sm text-muted mb-3">
-            After completing the payment, click "Confirm Payment" below.
+            After completing the payment(s), click "Confirm Payment" below.
           </p>
 
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
@@ -126,7 +155,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
               ← Back
             </button>
             <button className="btn btn-success" onClick={handlePlaceOrder}>
-              ✅ Confirm Payment & Place Order
+              ✅ Confirm Payment &amp; Place Order
             </button>
           </div>
         </div>

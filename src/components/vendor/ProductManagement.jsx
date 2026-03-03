@@ -21,6 +21,8 @@ const EMOJI_MAP = {
   Other: '📦',
 };
 
+const MAX_DESCRIPTION_PREVIEW_LENGTH = 60;
+
 const emptyForm = {
   name: '',
   description: '',
@@ -149,7 +151,7 @@ export default function ProductManagement() {
                   <td>
                     <div className="fw-bold">{p.name}</div>
                     {p.description && (
-                      <div className="text-sm text-muted">{p.description.slice(0, 60)}</div>
+                      <div className="text-sm text-muted">{p.description.slice(0, MAX_DESCRIPTION_PREVIEW_LENGTH)}</div>
                     )}
                   </td>
                   <td className="fw-bold" style={{ color: '#4f46e5' }}>
