@@ -4,6 +4,7 @@ import ShopManagement from './ShopManagement';
 import ProductManagement from './ProductManagement';
 import OrderManagement from './OrderManagement';
 import Analytics from './Analytics';
+import ShopStatus from './ShopStatus';
 
 const TABS = [
   { id: 'shop', label: '🏪 My Shop', icon: '🏪' },
@@ -23,6 +24,7 @@ export default function VendorDashboard() {
           <div className="text-sm text-muted">Vendor Panel</div>
           <div className="fw-bold">{user.shopName}</div>
         </div>
+        <ShopStatus />
         {TABS.map((tab) => (
           <button
             key={tab.id}
