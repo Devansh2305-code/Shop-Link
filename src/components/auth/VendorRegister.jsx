@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { findUserByEmail, saveUser, generateId } from '../../utils/storage';
 import { useApp } from '../../context/AppContext';
+import ImageUpload from '../shared/ImageUpload';
 
 const SHOP_CATEGORIES = [
   'Mobile Accessories',
@@ -32,6 +33,7 @@ export default function VendorRegister() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [qrCodeImage, setQrCodeImage] = useState('');
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -86,6 +88,7 @@ export default function VendorRegister() {
       shopLocation: shopLocation.trim(),
       shopCategory,
       upiId: form.upiId.trim(),
+      qrCodeImage,
       password,
       type: 'vendor',
       shopOpen: false,
@@ -189,6 +192,12 @@ export default function VendorRegister() {
               onChange={handleChange}
             />
           </div>
+          <ImageUpload
+            label="UPI QR Code Image (optional)"
+            value={qrCodeImage}
+            onChange={setQrCodeImage}
+            placeholder="Upload your UPI QR code for customer payments"
+          />
           <div className="grid-2">
             <div className="form-group">
               <label className="form-label">Password *</label>
