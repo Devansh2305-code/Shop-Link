@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByCustomer } from '../../utils/storage';
+import { getOrdersByCustomerFromFirestore } from '../../firebase/firestore';
 
 const STATUS_COLORS = {
   'Pending': 'badge-warning',
@@ -18,8 +18,9 @@ export default function MyOrders() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const all = getOrdersByCustomer(user.id);
-    setOrders(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    getOrdersByCustomerFromFirestore(user.id).then((all) => {
+      setOrders(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+    });
   }, [user.id]);
 
   function formatDate(iso) {

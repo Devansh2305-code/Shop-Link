@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getUsers, getProductsByVendor } from '../../utils/storage';
+import {
+  getVendorsFromFirestore,
+  getProductsByVendorFromFirestore,
+} from '../../firebase/firestore';
 
 const SHOP_CATEGORIES = [
   'All',
@@ -38,11 +41,24 @@ export default function ShopBrowser() {
   const [selectedShop, setSelectedShop] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [addedMsg, setAddedMsg] = useState('');
+  const [vendors, setVendors] = useState([]);
+  const [shopProducts, setShopProducts] = useState([]);
 
-  const vendors = useMemo(
-    () => getUsers().filter((u) => u.type === 'vendor' && u.shopOpen),
-    []
-  );
+  useEffect(() => {
+    getVendorsFromFirestore().then((data) => {
+      setVendors(data.filter((v) => v.shopOpen));
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedShop) {
+      setShopProducts([]);
+      return;
+    }
+    getProductsByVendorFromFirestore(selectedShop.id).then((data) => {
+      setShopProducts(data.filter((p) => p.stock > 0));
+    });
+  }, [selectedShop]);
 
   const filteredShops = useMemo(() => {
     return vendors.filter((v) => {
@@ -55,11 +71,6 @@ export default function ShopBrowser() {
       return matchSearch && matchCategory;
     });
   }, [vendors, search, category]);
-
-  const shopProducts = useMemo(() => {
-    if (!selectedShop) return [];
-    return getProductsByVendor(selectedShop.id).filter((p) => p.stock > 0);
-  }, [selectedShop]);
 
   function handleAddToCart(product) {
     addToCart({

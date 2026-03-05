@@ -4,7 +4,7 @@ import ShopManagement from './ShopManagement';
 import ProductManagement from './ProductManagement';
 import OrderManagement from './OrderManagement';
 import Analytics from './Analytics';
-import { getOrdersByVendor } from '../../utils/storage';
+import { getOrdersByVendorFromFirestore } from '../../firebase/firestore';
 
 const TABS = [
   { id: 'shop', label: '🏪 My Shop', icon: '🏪' },
@@ -21,8 +21,9 @@ export default function VendorDashboard() {
   useEffect(() => {
     // Refresh pending count after visiting the orders tab (orders may have been confirmed)
     if (activeTab !== 'orders') {
-      const orders = getOrdersByVendor(user.id);
-      setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+      getOrdersByVendorFromFirestore(user.id).then((orders) => {
+        setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+      });
     }
   }, [user.id, activeTab]);
 
