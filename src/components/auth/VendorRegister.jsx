@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { findUserByEmail, saveUser, generateId } from '../../utils/storage';
+import { firebaseSignUp } from '../../firebase/auth';
+import {
+  findUserByEmailInFirestore,
+  saveUserToFirestore,
+} from '../../firebase/firestore';
 import { useApp } from '../../context/AppContext';
 import ImageUpload from '../shared/ImageUpload';
 
@@ -33,13 +37,14 @@ export default function VendorRegister() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [qrCodeImage, setQrCodeImage] = useState('');
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
@@ -74,31 +79,47 @@ export default function VendorRegister() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    if (findUserByEmail(email.trim().toLowerCase())) {
-      setError('An account with this email already exists.');
-      return;
+
+    setLoading(true);
+    try {
+      const existing = await findUserByEmailInFirestore(email.trim().toLowerCase());
+      if (existing) {
+        setError('An account with this email already exists.');
+        setLoading(false);
+        return;
+      }
+
+      const credential = await firebaseSignUp(email.trim().toLowerCase(), password);
+      const uid = credential.user.uid;
+
+      const user = {
+        id: uid,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        shopName: shopName.trim(),
+        shopLocation: shopLocation.trim(),
+        shopCategory,
+        upiId: form.upiId.trim(),
+        qrCodeImage,
+        type: 'vendor',
+        shopOpen: false,
+        deliveryMode: 'instant',
+        createdAt: new Date().toISOString(),
+      };
+
+      await saveUserToFirestore(user);
+      login(user);
+      history.push('/vendor');
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists.');
+      } else {
+        setError(err.message || 'Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const user = {
-      id: generateId(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      shopName: shopName.trim(),
-      shopLocation: shopLocation.trim(),
-      shopCategory,
-      upiId: form.upiId.trim(),
-      qrCodeImage,
-      password,
-      type: 'vendor',
-      shopOpen: false,
-      deliveryMode: 'instant',
-      createdAt: new Date().toISOString(),
-    };
-
-    saveUser(user);
-    login(user);
-    history.push('/vendor');
   }
 
   return (
@@ -222,8 +243,8 @@ export default function VendorRegister() {
               />
             </div>
           </div>
-          <button type="submit" className="btn btn-primary btn-full mt-2">
-            Create Vendor Account
+          <button type="submit" className="btn btn-primary btn-full mt-2" disabled={loading}>
+            {loading ? 'Creating Account…' : 'Create Vendor Account'}
           </button>
         </form>
         <p className="text-center text-sm text-muted mt-2">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { findUserByEmail } from '../../utils/storage';
+import { firebaseSignIn } from '../../firebase/auth';
+import { findUserByEmailInFirestore } from '../../firebase/firestore';
 import { useApp } from '../../context/AppContext';
 
 export default function Login() {
@@ -8,28 +9,51 @@ export default function Login() {
   const { login } = useApp();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!form.email || !form.password) {
       setError('Please fill in all fields.');
       return;
     }
-    const user = findUserByEmail(form.email.trim().toLowerCase());
-    if (!user || user.password !== form.password) {
-      setError('Invalid email or password.');
-      return;
-    }
-    login(user);
-    if (user.type === 'vendor') {
-      history.push('/vendor');
-    } else {
-      history.push('/customer');
+    setLoading(true);
+    try {
+      const credential = await firebaseSignIn(
+        form.email.trim().toLowerCase(),
+        form.password
+      );
+      const profile = await findUserByEmailInFirestore(
+        form.email.trim().toLowerCase()
+      );
+      if (!profile) {
+        setError('Account data not found. Please contact support.');
+        setLoading(false);
+        return;
+      }
+      login(profile);
+      if (profile.type === 'vendor') {
+        history.push('/vendor');
+      } else {
+        history.push('/customer');
+      }
+    } catch (err) {
+      if (
+        err.code === 'auth/user-not-found' ||
+        err.code === 'auth/wrong-password' ||
+        err.code === 'auth/invalid-credential'
+      ) {
+        setError('Invalid email or password.');
+      } else {
+        setError(err.message || 'Sign in failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -63,8 +87,8 @@ export default function Login() {
               onChange={handleChange}
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-full mt-2">
-            Sign In
+          <button type="submit" className="btn btn-primary btn-full mt-2" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
         <hr className="divider" />

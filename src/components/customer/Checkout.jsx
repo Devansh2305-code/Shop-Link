@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { saveOrder, findUserById, generateId } from '../../utils/storage';
+import {
+  saveOrderToFirestore,
+  getUserFromFirestore,
+} from '../../firebase/firestore';
+import { generateId } from '../../utils/storage';
 
 const PAYMENT_METHODS = ['UPI', 'Cash on Delivery', 'Card'];
 
@@ -12,6 +16,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
     paymentMethod: 'UPI',
   });
   const [upiStep, setUpiStep] = useState(false);
+  const [vendorProfiles, setVendorProfiles] = useState({});
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState('');
 
@@ -19,47 +24,56 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     setError('');
     if (!form.location.trim()) {
       setError('Please enter your delivery location.');
       return;
     }
 
-    // If UPI, show QR step first
+    // If UPI, pre-fetch vendor data and show QR step first
     if (form.paymentMethod === 'UPI' && !upiStep) {
+      const profiles = {};
+      await Promise.all(
+        Object.keys(byVendor).map(async (vendorId) => {
+          profiles[vendorId] = await getUserFromFirestore(vendorId);
+        })
+      );
+      setVendorProfiles(profiles);
       setUpiStep(true);
       return;
     }
 
     // Create one order per vendor
-    Object.entries(byVendor).forEach(([vendorId, group]) => {
-      const vendor = findUserById(vendorId);
-      const vendorTotal = group.items.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0
-      );
-      const order = {
-        id: generateId(),
-        customerId: user.id,
-        customerName: user.name,
-        customerPhone: user.phone,
-        customerLocation: form.location.trim(),
-        vendorId,
-        vendorName: vendor ? vendor.shopName : group.vendorName,
-        items: group.items.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-        })),
-        total: vendorTotal,
-        paymentMethod: form.paymentMethod,
-        status: form.paymentMethod === 'UPI' ? 'Payment Submitted' : 'Pending',
-        createdAt: new Date().toISOString(),
-      };
-      saveOrder(order);
-    });
+    await Promise.all(
+      Object.entries(byVendor).map(async ([vendorId, group]) => {
+        const vendor = vendorProfiles[vendorId] || (await getUserFromFirestore(vendorId));
+        const vendorTotal = group.items.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
+        const order = {
+          id: generateId(),
+          customerId: user.id,
+          customerName: user.name,
+          customerPhone: user.phone,
+          customerLocation: form.location.trim(),
+          vendorId,
+          vendorName: vendor ? vendor.shopName : group.vendorName,
+          items: group.items.map((item) => ({
+            productId: item.productId,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          total: vendorTotal,
+          paymentMethod: form.paymentMethod,
+          status: form.paymentMethod === 'UPI' ? 'Payment Submitted' : 'Pending',
+          createdAt: new Date().toISOString(),
+        };
+        await saveOrderToFirestore(order);
+      })
+    );
 
     clearCartItems();
     setOrderPlaced(true);
@@ -99,7 +113,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
           </p>
 
           {vendorEntries.map(([vendorId, group]) => {
-            const vendor = findUserById(vendorId);
+            const vendor = vendorProfiles[vendorId];
             const vendorTotal = group.items.reduce(
               (sum, item) => sum + item.price * item.quantity,
               0
