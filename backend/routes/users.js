@@ -21,7 +21,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (req.user._id.toString() !== req.params.id) {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
-    const allowed = ['name', 'phone', 'shopName', 'shopLocation', 'shopCategory', 'upiId', 'qrCodeImage', 'deliveryMode', 'scheduledTime'];
+    const allowed = ['name', 'phone', 'deliveryMode', 'scheduledTime'];
+    // Vendor-only fields
+    if (req.user.type === 'vendor') {
+      allowed.push('shopName', 'shopLocation', 'shopCategory', 'upiId', 'qrCodeImage');
+    }
     const updates = {};
     allowed.forEach((field) => {
       if (req.body[field] !== undefined) updates[field] = req.body[field];

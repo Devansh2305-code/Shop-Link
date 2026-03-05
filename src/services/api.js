@@ -22,9 +22,18 @@ class APIService {
     if (body !== undefined) {
       options.body = JSON.stringify(body);
     }
-    const response = await fetch(`${this.baseURL}${path}`, options);
-    const data = await response.json();
-    return { ok: response.ok, status: response.status, data };
+    try {
+      const response = await fetch(`${this.baseURL}${path}`, options);
+      let data;
+      try {
+        data = await response.json();
+      } catch {
+        data = { success: false, message: response.ok ? 'Unexpected response format' : `HTTP ${response.status}` };
+      }
+      return { ok: response.ok, status: response.status, data };
+    } catch (err) {
+      return { ok: false, status: 0, data: { success: false, message: 'Network error' } };
+    }
   }
 
   // Auth

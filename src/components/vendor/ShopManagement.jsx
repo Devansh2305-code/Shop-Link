@@ -28,11 +28,16 @@ export default function ShopManagement() {
   async function handleToggleShop(e) {
     const newStatus = e.target.checked;
     setShopOpen(newStatus);
-    await apiService.updateShopStatus(user._id, {
+    const updated = await apiService.updateShopStatus(user._id, {
       shopOpen: newStatus,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
     });
+    if (!updated) {
+      // Revert on failure
+      setShopOpen(!newStatus);
+      return;
+    }
     await refreshUser();
     setToggleSaved(true);
     clearTimeout(toggleTimerRef.current);
