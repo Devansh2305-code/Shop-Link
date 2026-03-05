@@ -1,47 +1,49 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  getCurrentUser,
-  setCurrentUser,
-  clearCurrentUser,
-  getCart,
-  setCart,
-  findUserById,
-} from '../utils/storage';
+import { onAuthStateChange, firebaseSignOut } from '../firebase/auth';
+import { getUserFromFirestore } from '../firebase/firestore';
+import { getCart, setCart } from '../utils/storage';
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [user, setUser] = useState(() => getCurrentUser());
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [cart, setCartState] = useState(() => getCart());
 
+  // Listen to Firebase Auth state changes
   useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    } else {
-      clearCurrentUser();
-    }
-  }, [user]);
+    const unsubscribe = onAuthStateChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        // Fetch full user profile from Firestore
+        const profile = await getUserFromFirestore(firebaseUser.uid);
+        setUser(profile || null);
+      } else {
+        setUser(null);
+      }
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     setCart(cart);
   }, [cart]);
 
   function login(userData) {
+    // Called after Firebase sign-in to immediately set local state
     setUser(userData);
-    setCurrentUser(userData);
   }
 
-  function logout() {
+  async function logout() {
+    await firebaseSignOut();
     setUser(null);
-    clearCurrentUser();
     setCartState([]);
   }
 
-  function refreshUser(userId) {
-    const updated = findUserById(userId);
+  async function refreshUser(userId) {
+    const updated = await getUserFromFirestore(userId);
     if (updated) {
       setUser(updated);
-      setCurrentUser(updated);
     }
   }
 
@@ -89,6 +91,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         user,
+        authLoading,
         login,
         logout,
         refreshUser,

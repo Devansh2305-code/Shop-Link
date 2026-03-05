@@ -1,47 +1,56 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByVendor, getProductsByVendor } from '../../utils/storage';
+import {
+  getOrdersByVendorFromFirestore,
+  getProductsByVendorFromFirestore,
+} from '../../firebase/firestore';
 
 export default function Analytics() {
   const { user } = useApp();
+  const [stats, setStats] = useState({ totalRevenue: 0, totalOrders: 0, pendingOrders: 0, productCount: 0 });
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
 
-  const { orders, products, stats, recentOrders, topProducts } = useMemo(() => {
-    const orders = getOrdersByVendor(user.id);
-    const products = getProductsByVendor(user.id);
+  useEffect(() => {
+    async function load() {
+      const [orders, products] = await Promise.all([
+        getOrdersByVendorFromFirestore(user.id),
+        getProductsByVendorFromFirestore(user.id),
+      ]);
 
-    const delivered = orders.filter((o) => o.status === 'Delivered');
-    const totalRevenue = delivered.reduce((sum, o) => sum + o.total, 0);
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) =>
-      ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery'].includes(o.status)
-    ).length;
+      const delivered = orders.filter((o) => o.status === 'Delivered');
+      const totalRevenue = delivered.reduce((sum, o) => sum + o.total, 0);
+      const totalOrders = orders.length;
+      const pendingOrders = orders.filter((o) =>
+        ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery'].includes(o.status)
+      ).length;
 
-    const productSales = {};
-    delivered.forEach((order) => {
-      order.items.forEach((item) => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = { name: item.name, quantity: 0, revenue: 0 };
-        }
-        productSales[item.productId].quantity += item.quantity;
-        productSales[item.productId].revenue += item.price * item.quantity;
+      const productSales = {};
+      delivered.forEach((order) => {
+        order.items.forEach((item) => {
+          if (!productSales[item.productId]) {
+            productSales[item.productId] = { name: item.name, quantity: 0, revenue: 0 };
+          }
+          productSales[item.productId].quantity += item.quantity;
+          productSales[item.productId].revenue += item.price * item.quantity;
+        });
       });
-    });
 
-    const topProducts = Object.values(productSales)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+      setTopProducts(
+        Object.values(productSales)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5)
+      );
 
-    const recentOrders = [...orders]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
+      setRecentOrders(
+        [...orders]
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 5)
+      );
 
-    return {
-      orders,
-      products,
-      stats: { totalRevenue, totalOrders, pendingOrders, productCount: products.length },
-      recentOrders,
-      topProducts,
-    };
+      setStats({ totalRevenue, totalOrders, pendingOrders, productCount: products.length });
+    }
+    load();
   }, [user.id]);
 
   return (

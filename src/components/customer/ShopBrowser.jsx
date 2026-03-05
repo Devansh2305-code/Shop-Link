@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getUsers, getProductsByVendor } from '../../utils/storage';
+import {
+  getAllVendors,
+  getProductsByVendorFromFirestore,
+} from '../../firebase/firestore';
 
 const SHOP_CATEGORIES = [
   'All',
@@ -33,16 +36,27 @@ const CATEGORY_EMOJI = {
 
 export default function ShopBrowser() {
   const { addToCart } = useApp();
+  const [vendors, setVendors] = useState([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [selectedShop, setSelectedShop] = useState(null);
+  const [shopProducts, setShopProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [addedMsg, setAddedMsg] = useState('');
 
-  const vendors = useMemo(
-    () => getUsers().filter((u) => u.type === 'vendor' && u.shopOpen),
-    []
-  );
+  useEffect(() => {
+    getAllVendors().then(setVendors);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedShop) {
+      setShopProducts([]);
+      return;
+    }
+    getProductsByVendorFromFirestore(selectedShop.id).then((list) =>
+      setShopProducts(list.filter((p) => p.stock > 0))
+    );
+  }, [selectedShop]);
 
   const filteredShops = useMemo(() => {
     return vendors.filter((v) => {
@@ -55,11 +69,6 @@ export default function ShopBrowser() {
       return matchSearch && matchCategory;
     });
   }, [vendors, search, category]);
-
-  const shopProducts = useMemo(() => {
-    if (!selectedShop) return [];
-    return getProductsByVendor(selectedShop.id).filter((p) => p.stock > 0);
-  }, [selectedShop]);
 
   function handleAddToCart(product) {
     addToCart({
