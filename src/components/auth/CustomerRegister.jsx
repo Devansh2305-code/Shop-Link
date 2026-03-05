@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { findUserByEmail, saveUser, generateId } from '../../utils/storage';
+import { registerWithEmail } from '../../firebase/auth';
+import { saveUserToFirestore } from '../../firebase/firestore';
 import { useApp } from '../../context/AppContext';
 
 export default function CustomerRegister() {
@@ -14,12 +15,13 @@ export default function CustomerRegister() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
@@ -37,24 +39,33 @@ export default function CustomerRegister() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    if (findUserByEmail(email.trim().toLowerCase())) {
-      setError('An account with this email already exists.');
-      return;
+
+    setLoading(true);
+    try {
+      const credential = await registerWithEmail(email.trim().toLowerCase(), password);
+      const uid = credential.user.uid;
+
+      const user = {
+        id: uid,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        type: 'customer',
+        createdAt: new Date().toISOString(),
+      };
+
+      await saveUserToFirestore(uid, user);
+      login(user);
+      history.push('/customer');
+    } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        setError('An account with this email already exists.');
+      } else {
+        setError('Registration failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-
-    const user = {
-      id: generateId(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      password,
-      type: 'customer',
-      createdAt: new Date().toISOString(),
-    };
-
-    saveUser(user);
-    login(user);
-    history.push('/customer');
   }
 
   return (
@@ -119,8 +130,8 @@ export default function CustomerRegister() {
               onChange={handleChange}
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-full mt-2">
-            Create Account
+          <button type="submit" className="btn btn-primary btn-full mt-2" disabled={loading}>
+            {loading ? 'Creating Account…' : 'Create Account'}
           </button>
         </form>
         <p className="text-center text-sm text-muted mt-2">

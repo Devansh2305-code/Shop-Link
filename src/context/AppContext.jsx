@@ -1,47 +1,62 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { onAuthChange, firebaseLogout } from '../firebase/auth';
 import {
-  getCurrentUser,
-  setCurrentUser,
-  clearCurrentUser,
-  getCart,
-  setCart,
-  findUserById,
-} from '../utils/storage';
+  getUserFromFirestore,
+  saveCartToFirestore,
+  getCartFromFirestore,
+} from '../firebase/firestore';
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [user, setUser] = useState(() => getCurrentUser());
-  const [cart, setCartState] = useState(() => getCart());
+  const [user, setUser] = useState(null);
+  const [cart, setCartState] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
+  const cartSaveTimer = useRef(null);
 
+  // Listen to Firebase Auth state changes and load user profile from Firestore
   useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    } else {
-      clearCurrentUser();
-    }
-  }, [user]);
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
+      if (firebaseUser) {
+        const userData = await getUserFromFirestore(firebaseUser.uid);
+        setUser(userData);
+        const savedCart = await getCartFromFirestore(firebaseUser.uid);
+        setCartState(savedCart || []);
+      } else {
+        setUser(null);
+        setCartState([]);
+      }
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
 
+  // Persist cart to Firestore whenever it changes (debounced)
   useEffect(() => {
-    setCart(cart);
-  }, [cart]);
+    if (!user) return;
+    clearTimeout(cartSaveTimer.current);
+    cartSaveTimer.current = setTimeout(() => {
+      saveCartToFirestore(user.id, cart).catch((err) =>
+        console.error('Failed to sync cart:', err)
+      );
+    }, 500);
+    return () => clearTimeout(cartSaveTimer.current);
+  }, [cart, user]);
 
   function login(userData) {
     setUser(userData);
-    setCurrentUser(userData);
   }
 
-  function logout() {
+  async function logout() {
+    await firebaseLogout();
     setUser(null);
-    clearCurrentUser();
     setCartState([]);
   }
 
-  function refreshUser(userId) {
-    const updated = findUserById(userId);
+  async function refreshUser(userId) {
+    const updated = await getUserFromFirestore(userId);
     if (updated) {
       setUser(updated);
-      setCurrentUser(updated);
     }
   }
 
@@ -69,6 +84,11 @@ export function AppProvider({ children }) {
 
   function clearCartItems() {
     setCartState([]);
+    if (user) {
+      saveCartToFirestore(user.id, []).catch((err) =>
+        console.error('Failed to clear cart:', err)
+      );
+    }
   }
 
   function updateCartQuantity(productId, vendorId, quantity) {
@@ -82,6 +102,23 @@ export function AppProvider({ children }) {
           ? { ...c, quantity }
           : c
       )
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          fontSize: '1.5rem',
+          color: '#6b7280',
+        }}
+      >
+        Loading…
+      </div>
     );
   }
 

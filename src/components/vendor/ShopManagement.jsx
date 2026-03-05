@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { saveUser, findUserById } from '../../utils/storage';
+import { saveUserToFirestore } from '../../firebase/firestore';
 
 const DELIVERY_MODES = [
   { value: 'instant', label: 'Instant Delivery', desc: 'Items delivered immediately' },
@@ -25,7 +25,7 @@ export default function ShopManagement() {
     };
   }, []);
 
-  function handleToggleShop(e) {
+  async function handleToggleShop(e) {
     const newStatus = e.target.checked;
     setShopOpen(newStatus);
     const updated = {
@@ -34,21 +34,21 @@ export default function ShopManagement() {
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
     };
-    saveUser(updated);
+    await saveUserToFirestore(user.id, updated);
     refreshUser(user.id);
     setToggleSaved(true);
     clearTimeout(toggleTimerRef.current);
     toggleTimerRef.current = setTimeout(() => setToggleSaved(false), 2000);
   }
 
-  function handleSave() {
+  async function handleSave() {
     const updated = {
       ...user,
       shopOpen,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
     };
-    saveUser(updated);
+    await saveUserToFirestore(user.id, updated);
     refreshUser(user.id);
     setSaved(true);
     clearTimeout(savedTimerRef.current);

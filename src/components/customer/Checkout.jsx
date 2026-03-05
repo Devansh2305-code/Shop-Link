@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { saveOrder, findUserById, generateId } from '../../utils/storage';
+import { saveOrderToFirestore, getUserFromFirestore } from '../../firebase/firestore';
 
 const PAYMENT_METHODS = ['UPI', 'Cash on Delivery', 'Card'];
 
@@ -14,12 +14,25 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
   const [upiStep, setUpiStep] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState('');
+  const [vendorData, setVendorData] = useState({});
+
+  // Pre-load vendor details for UPI display
+  useEffect(() => {
+    const vendorIds = Object.keys(byVendor);
+    Promise.all(vendorIds.map((id) => getUserFromFirestore(id))).then((vendors) => {
+      const map = {};
+      vendors.forEach((v) => {
+        if (v) map[v.id] = v;
+      });
+      setVendorData(map);
+    });
+  }, [byVendor]);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     setError('');
     if (!form.location.trim()) {
       setError('Please enter your delivery location.');
@@ -33,14 +46,14 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
     }
 
     // Create one order per vendor
-    Object.entries(byVendor).forEach(([vendorId, group]) => {
-      const vendor = findUserById(vendorId);
+    const orderPromises = Object.entries(byVendor).map(async ([vendorId, group]) => {
+      const vendor = vendorData[vendorId] || await getUserFromFirestore(vendorId);
       const vendorTotal = group.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
       );
       const order = {
-        id: generateId(),
+        id: null,
         customerId: user.id,
         customerName: user.name,
         customerPhone: user.phone,
@@ -58,9 +71,10 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
         status: form.paymentMethod === 'UPI' ? 'Payment Submitted' : 'Pending',
         createdAt: new Date().toISOString(),
       };
-      saveOrder(order);
+      return saveOrderToFirestore(order);
     });
 
+    await Promise.all(orderPromises);
     clearCartItems();
     setOrderPlaced(true);
   }
@@ -99,7 +113,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
           </p>
 
           {vendorEntries.map(([vendorId, group]) => {
-            const vendor = findUserById(vendorId);
+            const vendor = vendorData[vendorId];
             const vendorTotal = group.items.reduce(
               (sum, item) => sum + item.price * item.quantity,
               0

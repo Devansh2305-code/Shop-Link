@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByVendor, saveOrder } from '../../utils/storage';
+import {
+  getOrdersByVendorFromFirestore,
+  saveOrderToFirestore,
+} from '../../firebase/firestore';
 
 const STATUS_OPTIONS = ['Pending', 'Payment Submitted', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -23,15 +26,15 @@ export default function OrderManagement() {
     loadOrders();
   }, []);
 
-  function loadOrders() {
-    const all = getOrdersByVendor(user.id);
+  async function loadOrders() {
+    const all = await getOrdersByVendorFromFirestore(user.id);
     setOrders(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
   }
 
-  function handleStatusChange(order, status) {
+  async function handleStatusChange(order, status) {
     const updated = { ...order, status };
-    saveOrder(updated);
-    loadOrders();
+    await saveOrderToFirestore(updated);
+    await loadOrders();
     if (selected && selected.id === order.id) {
       setSelected(updated);
     }

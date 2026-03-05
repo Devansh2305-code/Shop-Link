@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  getProductsByVendor,
-  saveProduct,
-  deleteProduct,
-  generateId,
-} from '../../utils/storage';
+  getProductsByVendorFromFirestore,
+  saveProductToFirestore,
+  deleteProductFromFirestore,
+} from '../../firebase/firestore';
 import ImageUpload from '../shared/ImageUpload';
 
 const EMOJI_MAP = {
@@ -46,8 +45,9 @@ export default function ProductManagement() {
     loadProducts();
   }, []);
 
-  function loadProducts() {
-    setProducts(getProductsByVendor(user.id));
+  async function loadProducts() {
+    const data = await getProductsByVendorFromFirestore(user.id);
+    setProducts(data);
   }
 
   function openAdd() {
@@ -76,7 +76,7 @@ export default function ProductManagement() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     setError('');
     if (!form.name || !form.price || !form.stock) {
       setError('Name, price and stock are required.');
@@ -94,7 +94,7 @@ export default function ProductManagement() {
     }
 
     const product = {
-      id: editProduct ? editProduct.id : generateId(),
+      id: editProduct ? editProduct.id : null,
       vendorId: user.id,
       name: form.name.trim(),
       description: form.description.trim(),
@@ -109,15 +109,15 @@ export default function ProductManagement() {
       updatedAt: new Date().toISOString(),
     };
 
-    saveProduct(product);
-    loadProducts();
+    await saveProductToFirestore(product);
+    await loadProducts();
     setShowModal(false);
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (window.confirm('Delete this product?')) {
-      deleteProduct(id);
-      loadProducts();
+      await deleteProductFromFirestore(id);
+      await loadProducts();
     }
   }
 
