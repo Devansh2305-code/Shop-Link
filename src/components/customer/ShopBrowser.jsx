@@ -45,9 +45,11 @@ export default function ShopBrowser() {
   const [shopProducts, setShopProducts] = useState([]);
 
   useEffect(() => {
-    getVendorsFromFirestore().then((data) => {
-      setVendors(data.filter((v) => v.shopOpen));
-    });
+    getVendorsFromFirestore()
+      .then((data) => {
+        setVendors(data.filter((v) => v.shopOpen));
+      })
+      .catch((err) => console.error('Failed to load vendors:', err));
   }, []);
 
   useEffect(() => {
@@ -55,9 +57,11 @@ export default function ShopBrowser() {
       setShopProducts([]);
       return;
     }
-    getProductsByVendorFromFirestore(selectedShop.id).then((data) => {
-      setShopProducts(data.filter((p) => p.stock > 0));
-    });
+    getProductsByVendorFromFirestore(selectedShop.id)
+      .then((data) => {
+        setShopProducts(data.filter((p) => p.stock > 0));
+      })
+      .catch((err) => console.error('Failed to load products:', err));
   }, [selectedShop]);
 
   const filteredShops = useMemo(() => {

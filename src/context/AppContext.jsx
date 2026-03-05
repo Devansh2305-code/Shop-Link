@@ -36,7 +36,9 @@ export function AppProvider({ children }) {
     if (!user) return;
     clearTimeout(cartSaveTimer.current);
     cartSaveTimer.current = setTimeout(() => {
-      saveCartToFirestore(user.id, cart).catch(() => {});
+      saveCartToFirestore(user.id, cart).catch((err) =>
+        console.error('Failed to sync cart:', err)
+      );
     }, 500);
     return () => clearTimeout(cartSaveTimer.current);
   }, [cart, user]);
@@ -83,7 +85,9 @@ export function AppProvider({ children }) {
   function clearCartItems() {
     setCartState([]);
     if (user) {
-      saveCartToFirestore(user.id, []).catch(() => {});
+      saveCartToFirestore(user.id, []).catch((err) =>
+        console.error('Failed to clear cart:', err)
+      );
     }
   }
 

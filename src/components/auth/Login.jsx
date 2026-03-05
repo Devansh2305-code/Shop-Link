@@ -36,8 +36,12 @@ export default function Login() {
       } else {
         history.push('/customer');
       }
-    } catch {
-      setError('Invalid email or password.');
+    } catch (err) {
+      if (err.code === 'auth/too-many-requests') {
+        setError('Too many failed attempts. Please try again later.');
+      } else {
+        setError('Invalid email or password.');
+      }
     } finally {
       setLoading(false);
     }

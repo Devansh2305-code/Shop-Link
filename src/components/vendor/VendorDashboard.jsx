@@ -21,9 +21,11 @@ export default function VendorDashboard() {
   useEffect(() => {
     // Refresh pending count after visiting the orders tab (orders may have been confirmed)
     if (activeTab !== 'orders') {
-      getOrdersByVendorFromFirestore(user.id).then((orders) => {
-        setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
-      });
+      getOrdersByVendorFromFirestore(user.id)
+        .then((orders) => {
+          setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+        })
+        .catch((err) => console.error('Failed to load order count:', err));
     }
   }, [user.id, activeTab]);
 
