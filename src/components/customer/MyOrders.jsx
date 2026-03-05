@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByCustomer } from '../../utils/storage';
+import apiService from '../../services/api';
 
 const STATUS_COLORS = {
   'Pending': 'badge-warning',
@@ -18,9 +18,10 @@ export default function MyOrders() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    const all = getOrdersByCustomer(user.id);
-    setOrders(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-  }, [user.id]);
+    apiService.getCustomerOrders(user._id).then((data) => {
+      setOrders(data);
+    });
+  }, [user._id]);
 
   function formatDate(iso) {
     return new Date(iso).toLocaleString();
@@ -45,11 +46,11 @@ export default function MyOrders() {
         <div>
           {orders.map((order) => (
             <div
-              key={order.id}
+              key={order._id}
               className="card mb-2"
               style={{
                 cursor: 'pointer',
-                border: selected?.id === order.id ? '2px solid #4f46e5' : '1px solid #e5e7eb',
+                border: selected?._id === order._id ? '2px solid #4f46e5' : '1px solid #e5e7eb',
               }}
               onClick={() => setSelected(order)}
             >

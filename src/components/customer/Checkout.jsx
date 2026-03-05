@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { saveOrder, findUserById, generateId } from '../../utils/storage';
+import apiService from '../../services/api';
 
 const PAYMENT_METHODS = ['UPI', 'Cash on Delivery', 'Card'];
 
@@ -14,12 +14,22 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
   const [upiStep, setUpiStep] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [error, setError] = useState('');
+  const [vendorDetails, setVendorDetails] = useState({});
+
+  useEffect(() => {
+    // Pre-fetch vendor details for UPI display
+    apiService.getVendors().then((vendors) => {
+      const map = {};
+      vendors.forEach((v) => { map[v._id] = v; });
+      setVendorDetails(map);
+    });
+  }, []);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handlePlaceOrder() {
+  async function handlePlaceOrder() {
     setError('');
     if (!form.location.trim()) {
       setError('Please enter your delivery location.');
@@ -33,20 +43,15 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
     }
 
     // Create one order per vendor
-    Object.entries(byVendor).forEach(([vendorId, group]) => {
-      const vendor = findUserById(vendorId);
+    const orderPromises = Object.entries(byVendor).map(async ([vendorId, group]) => {
       const vendorTotal = group.items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
       );
-      const order = {
-        id: generateId(),
-        customerId: user.id,
-        customerName: user.name,
-        customerPhone: user.phone,
-        customerLocation: form.location.trim(),
+      await apiService.createOrder({
+        customerId: user._id,
         vendorId,
-        vendorName: vendor ? vendor.shopName : group.vendorName,
+        vendorName: group.vendorName,
         items: group.items.map((item) => ({
           productId: item.productId,
           name: item.name,
@@ -55,12 +60,11 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
         })),
         total: vendorTotal,
         paymentMethod: form.paymentMethod,
-        status: form.paymentMethod === 'UPI' ? 'Payment Submitted' : 'Pending',
-        createdAt: new Date().toISOString(),
-      };
-      saveOrder(order);
+        customerLocation: form.location.trim(),
+      });
     });
 
+    await Promise.all(orderPromises);
     clearCartItems();
     setOrderPlaced(true);
   }
@@ -99,7 +103,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
           </p>
 
           {vendorEntries.map(([vendorId, group]) => {
-            const vendor = findUserById(vendorId);
+            const vendor = vendorDetails[vendorId];
             const vendorTotal = group.items.reduce(
               (sum, item) => sum + item.price * item.quantity,
               0

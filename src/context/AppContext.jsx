@@ -1,47 +1,44 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  getCurrentUser,
-  setCurrentUser,
-  clearCurrentUser,
-  getCart,
-  setCart,
-  findUserById,
-} from '../utils/storage';
+import { getCart, setCart } from '../utils/storage';
+import apiService from '../services/api';
 
 const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
-  const [user, setUser] = useState(() => getCurrentUser());
+  const [user, setUser] = useState(null);
   const [cart, setCartState] = useState(() => getCart());
+  const [loading, setLoading] = useState(true);
 
+  // On mount, check for existing JWT session
   useEffect(() => {
-    if (user) {
-      setCurrentUser(user);
-    } else {
-      clearCurrentUser();
-    }
-  }, [user]);
+    apiService.getCurrentUser().then((userData) => {
+      setUser(userData);
+      setLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     setCart(cart);
   }, [cart]);
 
-  function login(userData) {
-    setUser(userData);
-    setCurrentUser(userData);
+  async function login(email, password) {
+    const result = await apiService.login(email, password);
+    if (result.success) {
+      setUser(result.user);
+    }
+    return result;
   }
 
   function logout() {
+    apiService.logout();
     setUser(null);
-    clearCurrentUser();
     setCartState([]);
   }
 
-  function refreshUser(userId) {
-    const updated = findUserById(userId);
+  async function refreshUser() {
+    const updated = await apiService.getCurrentUser();
     if (updated) {
       setUser(updated);
-      setCurrentUser(updated);
     }
   }
 
@@ -89,6 +86,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider
       value={{
         user,
+        loading,
         login,
         logout,
         refreshUser,

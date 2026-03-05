@@ -4,13 +4,14 @@ import ShopManagement from './ShopManagement';
 import ProductManagement from './ProductManagement';
 import OrderManagement from './OrderManagement';
 import Analytics from './Analytics';
-import { getOrdersByVendor } from '../../utils/storage';
+import apiService from '../../services/api';
+import MobileNavigation from '../shared/MobileNavigation';
 
 const TABS = [
-  { id: 'shop', label: '🏪 My Shop', icon: '🏪' },
-  { id: 'products', label: '📦 Products', icon: '📦' },
-  { id: 'orders', label: '📋 Orders', icon: '📋' },
-  { id: 'analytics', label: '📊 Analytics', icon: '📊' },
+  { id: 'shop', label: 'Shop', icon: '🏪' },
+  { id: 'products', label: 'Products', icon: '📦' },
+  { id: 'orders', label: 'Orders', icon: '📋' },
+  { id: 'analytics', label: 'Analytics', icon: '📊' },
 ];
 
 export default function VendorDashboard() {
@@ -21,15 +22,16 @@ export default function VendorDashboard() {
   useEffect(() => {
     // Refresh pending count after visiting the orders tab (orders may have been confirmed)
     if (activeTab !== 'orders') {
-      const orders = getOrdersByVendor(user.id);
-      setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+      apiService.getVendorOrders(user._id).then((orders) => {
+        setPendingCount(orders.filter((o) => o.status === 'Payment Submitted').length);
+      });
     }
-  }, [user.id, activeTab]);
+  }, [user._id, activeTab]);
 
   return (
     <div className="dashboard-layout">
       <div className="sidebar">
-        <div style={{ marginBottom: '1rem', padding: '0.5rem' }}>
+        <div style={{ marginBottom: '1rem', padding: '0.5rem' }} className="sidebar-brand">
           <div className="text-sm text-muted">Vendor Panel</div>
           <div className="fw-bold">{user.shopName}</div>
         </div>
@@ -39,7 +41,7 @@ export default function VendorDashboard() {
             className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}
+            {tab.icon} {tab.label}
             {tab.id === 'orders' && pendingCount > 0 && (
               <span
                 className="badge badge-danger"
@@ -57,6 +59,12 @@ export default function VendorDashboard() {
         {activeTab === 'orders' && <OrderManagement />}
         {activeTab === 'analytics' && <Analytics />}
       </div>
+      <MobileNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={TABS}
+        cartCount={pendingCount}
+      />
     </div>
   );
 }
