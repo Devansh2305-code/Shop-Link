@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByVendor, saveOrder } from '../../utils/storage';
+import apiService from '../../services/api';
 
 const STATUS_OPTIONS = ['Pending', 'Payment Submitted', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -23,17 +23,18 @@ export default function OrderManagement() {
     loadOrders();
   }, []);
 
-  function loadOrders() {
-    const all = getOrdersByVendor(user.id);
-    setOrders(all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+  async function loadOrders() {
+    const all = await apiService.getVendorOrders(user._id);
+    setOrders(all);
   }
 
-  function handleStatusChange(order, status) {
-    const updated = { ...order, status };
-    saveOrder(updated);
-    loadOrders();
-    if (selected && selected.id === order.id) {
-      setSelected(updated);
+  async function handleStatusChange(order, status) {
+    const updated = await apiService.updateOrderStatus(order._id, status);
+    if (updated) {
+      await loadOrders();
+      if (selected && selected._id === order._id) {
+        setSelected(updated);
+      }
     }
   }
 
@@ -71,11 +72,11 @@ export default function OrderManagement() {
             })()}
             {orders.map((order) => (
               <div
-                key={order.id}
+                key={order._id}
                 className="card mb-2"
                 style={{
                   cursor: 'pointer',
-                  border: selected?.id === order.id
+                  border: selected?._id === order._id
                     ? '2px solid #4f46e5'
                     : order.status === 'Payment Submitted'
                     ? '2px solid #f59e0b'

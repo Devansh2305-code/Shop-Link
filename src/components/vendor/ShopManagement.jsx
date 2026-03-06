@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { saveUser, findUserById } from '../../utils/storage';
+import apiService from '../../services/api';
 
 const DELIVERY_MODES = [
   { value: 'instant', label: 'Instant Delivery', desc: 'Items delivered immediately' },
@@ -25,31 +25,32 @@ export default function ShopManagement() {
     };
   }, []);
 
-  function handleToggleShop(e) {
+  async function handleToggleShop(e) {
     const newStatus = e.target.checked;
     setShopOpen(newStatus);
-    const updated = {
-      ...user,
+    const updated = await apiService.updateShopStatus(user._id, {
       shopOpen: newStatus,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
-    };
-    saveUser(updated);
-    refreshUser(user.id);
+    });
+    if (!updated) {
+      // Revert on failure
+      setShopOpen(!newStatus);
+      return;
+    }
+    await refreshUser();
     setToggleSaved(true);
     clearTimeout(toggleTimerRef.current);
     toggleTimerRef.current = setTimeout(() => setToggleSaved(false), 2000);
   }
 
-  function handleSave() {
-    const updated = {
-      ...user,
+  async function handleSave() {
+    await apiService.updateShopStatus(user._id, {
       shopOpen,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
-    };
-    saveUser(updated);
-    refreshUser(user.id);
+    });
+    await refreshUser();
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), 2000);

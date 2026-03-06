@@ -1,48 +1,46 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getOrdersByVendor, getProductsByVendor } from '../../utils/storage';
+import apiService from '../../services/api';
 
 export default function Analytics() {
   const { user } = useApp();
+  const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
 
-  const { orders, products, stats, recentOrders, topProducts } = useMemo(() => {
-    const orders = getOrdersByVendor(user.id);
-    const products = getProductsByVendor(user.id);
-
-    const delivered = orders.filter((o) => o.status === 'Delivered');
-    const totalRevenue = delivered.reduce((sum, o) => sum + o.total, 0);
-    const totalOrders = orders.length;
-    const pendingOrders = orders.filter((o) =>
-      ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery'].includes(o.status)
-    ).length;
-
-    const productSales = {};
-    delivered.forEach((order) => {
-      order.items.forEach((item) => {
-        if (!productSales[item.productId]) {
-          productSales[item.productId] = { name: item.name, quantity: 0, revenue: 0 };
-        }
-        productSales[item.productId].quantity += item.quantity;
-        productSales[item.productId].revenue += item.price * item.quantity;
-      });
+  useEffect(() => {
+    Promise.all([
+      apiService.getVendorOrders(user._id),
+      apiService.getProductsByVendor(user._id),
+    ]).then(([orderData, productData]) => {
+      setOrders(orderData);
+      setProducts(productData);
     });
+  }, [user._id]);
 
-    const topProducts = Object.values(productSales)
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
+  const delivered = orders.filter((o) => o.status === 'Delivered');
+  const totalRevenue = delivered.reduce((sum, o) => sum + o.total, 0);
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter((o) =>
+    ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery'].includes(o.status)
+  ).length;
 
-    const recentOrders = [...orders]
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .slice(0, 5);
+  const productSales = {};
+  delivered.forEach((order) => {
+    order.items.forEach((item) => {
+      const key = String(item.productId);
+      if (!productSales[key]) {
+        productSales[key] = { name: item.name, quantity: 0, revenue: 0 };
+      }
+      productSales[key].quantity += item.quantity;
+      productSales[key].revenue += item.price * item.quantity;
+    });
+  });
 
-    return {
-      orders,
-      products,
-      stats: { totalRevenue, totalOrders, pendingOrders, productCount: products.length },
-      recentOrders,
-      topProducts,
-    };
-  }, [user.id]);
+  const topProducts = Object.values(productSales)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  const recentOrders = [...orders].slice(0, 5);
 
   return (
     <div>
@@ -50,19 +48,19 @@ export default function Analytics() {
 
       <div className="grid-4 mb-3">
         <div className="stat-card">
-          <div className="stat-value">₹{stats.totalRevenue.toFixed(0)}</div>
+          <div className="stat-value">₹{totalRevenue.toFixed(0)}</div>
           <div className="stat-label">Total Revenue</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.totalOrders}</div>
+          <div className="stat-value">{totalOrders}</div>
           <div className="stat-label">Total Orders</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.pendingOrders}</div>
+          <div className="stat-value">{pendingOrders}</div>
           <div className="stat-label">Active Orders</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{stats.productCount}</div>
+          <div className="stat-value">{products.length}</div>
           <div className="stat-label">Products Listed</div>
         </div>
       </div>
@@ -124,7 +122,7 @@ export default function Analytics() {
               </thead>
               <tbody>
                 {recentOrders.map((o) => (
-                  <tr key={o.id}>
+                  <tr key={o._id}>
                     <td>{o.customerName}</td>
                     <td>₹{o.total.toFixed(2)}</td>
                     <td>

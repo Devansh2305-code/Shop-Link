@@ -9,11 +9,12 @@ import CustomerDashboard from './components/customer/CustomerDashboard';
 import Navbar from './components/shared/Navbar';
 
 function PrivateRoute({ children, role, ...rest }) {
-  const { user } = useApp();
+  const { user, loading } = useApp();
   return (
     <Route
       {...rest}
       render={() => {
+        if (loading) return <div className="flex-center" style={{ minHeight: '100vh' }}>Loading...</div>;
         if (!user) return <Redirect to="/login" />;
         if (role && user.type !== role) return <Redirect to="/" />;
         return children;
@@ -23,7 +24,8 @@ function PrivateRoute({ children, role, ...rest }) {
 }
 
 function HomeRedirect() {
-  const { user } = useApp();
+  const { user, loading } = useApp();
+  if (loading) return <div className="flex-center" style={{ minHeight: '100vh' }}>Loading...</div>;
   if (!user) return <Redirect to="/login" />;
   if (user.type === 'vendor') return <Redirect to="/vendor" />;
   return <Redirect to="/customer" />;

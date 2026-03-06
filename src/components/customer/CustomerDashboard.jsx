@@ -5,11 +5,12 @@ import ShopBrowser from './ShopBrowser';
 import Cart from './Cart';
 import Checkout from './Checkout';
 import MyOrders from './MyOrders';
+import MobileNavigation from '../shared/MobileNavigation';
 
 const TABS = [
-  { id: 'shops', label: '🏪 Browse Shops' },
-  { id: 'cart', label: '🛒 Cart' },
-  { id: 'orders', label: '📋 My Orders' },
+  { id: 'shops', label: 'Shops', icon: '🏪' },
+  { id: 'cart', label: 'Cart', icon: '🛒' },
+  { id: 'orders', label: 'Orders', icon: '📋' },
 ];
 
 export default function CustomerDashboard() {
@@ -36,16 +37,21 @@ export default function CustomerDashboard() {
     setActiveTab('orders');
   }
 
+  const sidebarTabs = [
+    ...TABS,
+    ...(activeTab === 'checkout' ? [{ id: 'checkout', label: 'Checkout', icon: '💳' }] : []),
+  ];
+
   return (
     <div className="dashboard-layout">
       <div className="sidebar">
-        {TABS.map((tab) => (
+        {sidebarTabs.map((tab) => (
           <button
             key={tab.id}
             className={`sidebar-item ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
-            {tab.label}
+            {tab.icon} {tab.label}
             {tab.id === 'cart' && cartCount > 0 && (
               <span
                 style={{
@@ -63,9 +69,6 @@ export default function CustomerDashboard() {
             )}
           </button>
         ))}
-        {activeTab === 'checkout' && (
-          <button className="sidebar-item active">💳 Checkout</button>
-        )}
       </div>
       <div className="dashboard-content">
         {activeTab === 'shops' && <ShopBrowser />}
@@ -75,6 +78,12 @@ export default function CustomerDashboard() {
         )}
         {activeTab === 'orders' && <MyOrders />}
       </div>
+      <MobileNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabs={TABS}
+        cartCount={cartCount}
+      />
     </div>
   );
 }

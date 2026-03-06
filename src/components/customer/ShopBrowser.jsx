@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { getUsers, getProductsByVendor } from '../../utils/storage';
+import apiService from '../../services/api';
 
 const SHOP_CATEGORIES = [
   'All',
@@ -38,33 +38,39 @@ export default function ShopBrowser() {
   const [selectedShop, setSelectedShop] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [addedMsg, setAddedMsg] = useState('');
+  const [vendors, setVendors] = useState([]);
+  const [shopProducts, setShopProducts] = useState([]);
 
-  const vendors = useMemo(
-    () => getUsers().filter((u) => u.type === 'vendor' && u.shopOpen),
-    []
-  );
-
-  const filteredShops = useMemo(() => {
-    return vendors.filter((v) => {
-      const matchSearch =
-        !search ||
-        v.shopName.toLowerCase().includes(search.toLowerCase()) ||
-        v.shopCategory.toLowerCase().includes(search.toLowerCase()) ||
-        v.shopLocation.toLowerCase().includes(search.toLowerCase());
-      const matchCategory = category === 'All' || v.shopCategory === category;
-      return matchSearch && matchCategory;
+  useEffect(() => {
+    apiService.getVendors().then((data) => {
+      setVendors(data.filter((u) => u.type === 'vendor' && u.shopOpen));
     });
-  }, [vendors, search, category]);
+  }, []);
 
-  const shopProducts = useMemo(() => {
-    if (!selectedShop) return [];
-    return getProductsByVendor(selectedShop.id).filter((p) => p.stock > 0);
+  useEffect(() => {
+    if (selectedShop) {
+      apiService.getProductsByVendor(selectedShop._id).then((data) => {
+        setShopProducts(data.filter((p) => p.stock > 0));
+      });
+    } else {
+      setShopProducts([]);
+    }
   }, [selectedShop]);
+
+  const filteredShops = vendors.filter((v) => {
+    const matchSearch =
+      !search ||
+      v.shopName.toLowerCase().includes(search.toLowerCase()) ||
+      v.shopCategory.toLowerCase().includes(search.toLowerCase()) ||
+      v.shopLocation.toLowerCase().includes(search.toLowerCase());
+    const matchCategory = category === 'All' || v.shopCategory === category;
+    return matchSearch && matchCategory;
+  });
 
   function handleAddToCart(product) {
     addToCart({
-      productId: product.id,
-      vendorId: selectedShop.id,
+      productId: product._id,
+      vendorId: selectedShop._id,
       vendorName: selectedShop.shopName,
       name: product.name,
       price: product.price,
@@ -202,7 +208,7 @@ export default function ShopBrowser() {
         ) : (
           <div className="grid-3">
             {shopProducts.map((p) => (
-              <div key={p.id} className="product-card">
+              <div key={p._id} className="product-card">
                 <div
                   className="product-card-img"
                   onClick={() => setSelectedProduct(p)}
@@ -279,7 +285,7 @@ export default function ShopBrowser() {
       ) : (
         <div className="grid-3">
           {filteredShops.map((shop) => (
-            <div key={shop.id} className="shop-card" onClick={() => setSelectedShop(shop)}>
+            <div key={shop._id} className="shop-card" onClick={() => setSelectedShop(shop)}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
                 {CATEGORY_EMOJI[shop.shopCategory] || '🏪'}
               </div>

@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import {
-  getProductsByVendor,
-  saveProduct,
-  deleteProduct,
-  generateId,
-} from '../../utils/storage';
+import apiService from '../../services/api';
 import ImageUpload from '../shared/ImageUpload';
 
 const EMOJI_MAP = {
@@ -46,8 +41,9 @@ export default function ProductManagement() {
     loadProducts();
   }, []);
 
-  function loadProducts() {
-    setProducts(getProductsByVendor(user.id));
+  async function loadProducts() {
+    const data = await apiService.getProductsByVendor(user._id);
+    setProducts(data);
   }
 
   function openAdd() {
@@ -76,7 +72,7 @@ export default function ProductManagement() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     setError('');
     if (!form.name || !form.price || !form.stock) {
       setError('Name, price and stock are required.');
@@ -93,9 +89,7 @@ export default function ProductManagement() {
       return;
     }
 
-    const product = {
-      id: editProduct ? editProduct.id : generateId(),
-      vendorId: user.id,
+    const productData = {
       name: form.name.trim(),
       description: form.description.trim(),
       price,
@@ -105,19 +99,21 @@ export default function ProductManagement() {
         : [],
       category: form.category.trim() || user.shopCategory,
       image: form.image,
-      createdAt: editProduct ? editProduct.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
 
-    saveProduct(product);
-    loadProducts();
+    if (editProduct) {
+      await apiService.updateProduct(editProduct._id, productData);
+    } else {
+      await apiService.createProduct(productData);
+    }
+    await loadProducts();
     setShowModal(false);
   }
 
-  function handleDelete(id) {
+  async function handleDelete(id) {
     if (window.confirm('Delete this product?')) {
-      deleteProduct(id);
-      loadProducts();
+      await apiService.deleteProduct(id);
+      await loadProducts();
     }
   }
 
@@ -152,7 +148,7 @@ export default function ProductManagement() {
             </thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id}>
+                <tr key={p._id}>
                   <td>
                     {p.image ? (
                       <img
@@ -199,7 +195,7 @@ export default function ProductManagement() {
                       </button>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(p.id)}
+                        onClick={() => handleDelete(p._id)}
                       >
                         🗑️
                       </button>

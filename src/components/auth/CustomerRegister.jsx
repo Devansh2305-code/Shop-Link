@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { findUserByEmail, saveUser, generateId } from '../../utils/storage';
+import apiService from '../../services/api';
 import { useApp } from '../../context/AppContext';
 
 export default function CustomerRegister() {
@@ -14,12 +14,13 @@ export default function CustomerRegister() {
     confirmPassword: '',
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
 
@@ -37,24 +38,29 @@ export default function CustomerRegister() {
       setError('Password must be at least 6 characters.');
       return;
     }
-    if (findUserByEmail(email.trim().toLowerCase())) {
-      setError('An account with this email already exists.');
-      return;
+
+    setLoading(true);
+    try {
+      const result = await apiService.register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim(),
+        password,
+        type: 'customer',
+      });
+      if (!result.success) {
+        setError(result.message || 'Registration failed.');
+        return;
+      }
+      // User is already logged in via register (token stored in apiService)
+      // Manually set user in context
+      await login(email.trim().toLowerCase(), password);
+      history.push('/customer');
+    } catch {
+      setError('Unable to connect to server. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    const user = {
-      id: generateId(),
-      name: name.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
-      password,
-      type: 'customer',
-      createdAt: new Date().toISOString(),
-    };
-
-    saveUser(user);
-    login(user);
-    history.push('/customer');
   }
 
   return (
@@ -119,8 +125,8 @@ export default function CustomerRegister() {
               onChange={handleChange}
             />
           </div>
-          <button type="submit" className="btn btn-primary btn-full mt-2">
-            Create Account
+          <button type="submit" className="btn btn-primary btn-full mt-2" disabled={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
         <p className="text-center text-sm text-muted mt-2">
