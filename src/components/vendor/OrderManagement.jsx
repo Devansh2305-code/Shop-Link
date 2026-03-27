@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 const STATUS_OPTIONS = ['Pending', 'Payment Submitted', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
 
@@ -24,12 +24,12 @@ export default function OrderManagement() {
   }, []);
 
   async function loadOrders() {
-    const all = await apiService.getVendorOrders(user._id);
+    const all = await firebaseService.getVendorOrders(user._id);
     setOrders(all);
   }
 
   async function handleStatusChange(order, status) {
-    const updated = await apiService.updateOrderStatus(order._id, status);
+    const updated = await firebaseService.updateOrderStatus(order._id, status);
     if (updated) {
       await loadOrders();
       if (selected && selected._id === order._id) {

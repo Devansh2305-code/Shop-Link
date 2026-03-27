@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 import ImageUpload from '../shared/ImageUpload';
 
 const EMOJI_MAP = {
@@ -42,7 +42,7 @@ export default function ProductManagement() {
   }, []);
 
   async function loadProducts() {
-    const data = await apiService.getProductsByVendor(user._id);
+    const data = await firebaseService.getProductsByVendor(user._id);
     setProducts(data);
   }
 
@@ -102,9 +102,9 @@ export default function ProductManagement() {
     };
 
     if (editProduct) {
-      await apiService.updateProduct(editProduct._id, productData);
+      await firebaseService.updateProduct(editProduct._id, productData);
     } else {
-      await apiService.createProduct(productData);
+      await firebaseService.createProduct(productData);
     }
     await loadProducts();
     setShowModal(false);
@@ -112,7 +112,7 @@ export default function ProductManagement() {
 
   async function handleDelete(id) {
     if (window.confirm('Delete this product?')) {
-      await apiService.deleteProduct(id);
+      await firebaseService.deleteProduct(id);
       await loadProducts();
     }
   }

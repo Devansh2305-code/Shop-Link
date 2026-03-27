@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 const SHOP_CATEGORIES = [
   'All',
@@ -42,14 +42,14 @@ export default function ShopBrowser() {
   const [shopProducts, setShopProducts] = useState([]);
 
   useEffect(() => {
-    apiService.getVendors().then((data) => {
+    firebaseService.getVendors().then((data) => {
       setVendors(data.filter((u) => u.type === 'vendor' && u.shopOpen));
     });
   }, []);
 
   useEffect(() => {
     if (selectedShop) {
-      apiService.getProductsByVendor(selectedShop._id).then((data) => {
+      firebaseService.getProductsByVendor(selectedShop._id).then((data) => {
         setShopProducts(data.filter((p) => p.stock > 0));
       });
     } else {
