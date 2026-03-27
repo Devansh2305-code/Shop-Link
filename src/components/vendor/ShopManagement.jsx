@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 const DELIVERY_MODES = [
   { value: 'instant', label: 'Instant Delivery', desc: 'Items delivered immediately' },
@@ -28,7 +28,7 @@ export default function ShopManagement() {
   async function handleToggleShop(e) {
     const newStatus = e.target.checked;
     setShopOpen(newStatus);
-    const updated = await apiService.updateShopStatus(user._id, {
+    const updated = await firebaseService.updateShopStatus(user._id, {
       shopOpen: newStatus,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',
@@ -45,7 +45,7 @@ export default function ShopManagement() {
   }
 
   async function handleSave() {
-    await apiService.updateShopStatus(user._id, {
+    await firebaseService.updateShopStatus(user._id, {
       shopOpen,
       deliveryMode,
       scheduledTime: deliveryMode === 'scheduled' ? scheduledTime : '',

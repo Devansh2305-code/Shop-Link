@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 export default function Analytics() {
   const { user } = useApp();
@@ -9,8 +9,8 @@ export default function Analytics() {
 
   useEffect(() => {
     Promise.all([
-      apiService.getVendorOrders(user._id),
-      apiService.getProductsByVendor(user._id),
+      firebaseService.getVendorOrders(user._id),
+      firebaseService.getProductsByVendor(user._id),
     ]).then(([orderData, productData]) => {
       setOrders(orderData);
       setProducts(productData);

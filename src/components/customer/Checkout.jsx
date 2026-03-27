@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 const PAYMENT_METHODS = ['UPI', 'Cash on Delivery', 'Card'];
 
@@ -18,7 +18,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
 
   useEffect(() => {
     // Pre-fetch vendor details for UPI display
-    apiService.getVendors().then((vendors) => {
+    firebaseService.getVendors().then((vendors) => {
       const map = {};
       vendors.forEach((v) => { map[v._id] = v; });
       setVendorDetails(map);
@@ -48,7 +48,7 @@ export default function Checkout({ checkoutData, onOrderPlaced }) {
         (sum, item) => sum + item.price * item.quantity,
         0
       );
-      await apiService.createOrder({
+      await firebaseService.createOrder({
         customerId: user._id,
         vendorId,
         vendorName: group.vendorName,

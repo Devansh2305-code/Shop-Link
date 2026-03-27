@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getCart, setCart } from '../utils/storage';
-import apiService from '../services/api';
+import firebaseService from '../services/firebase';
 
 const AppContext = createContext(null);
 
@@ -11,7 +11,7 @@ export function AppProvider({ children }) {
 
   // On mount, check for existing JWT session
   useEffect(() => {
-    apiService.getCurrentUser().then((userData) => {
+    firebaseService.getCurrentUser().then((userData) => {
       setUser(userData);
       setLoading(false);
     });
@@ -22,7 +22,7 @@ export function AppProvider({ children }) {
   }, [cart]);
 
   async function login(email, password) {
-    const result = await apiService.login(email, password);
+    const result = await firebaseService.login(email, password);
     if (result.success) {
       setUser(result.user);
     }
@@ -30,13 +30,13 @@ export function AppProvider({ children }) {
   }
 
   function logout() {
-    apiService.logout();
+    firebaseService.logout();
     setUser(null);
     setCartState([]);
   }
 
   async function refreshUser() {
-    const updated = await apiService.getCurrentUser();
+    const updated = await firebaseService.getCurrentUser();
     if (updated) {
       setUser(updated);
     }

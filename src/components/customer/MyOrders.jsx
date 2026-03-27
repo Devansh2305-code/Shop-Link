@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 
 const STATUS_COLORS = {
   'Pending': 'badge-warning',
@@ -18,7 +18,7 @@ export default function MyOrders() {
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    apiService.getCustomerOrders(user._id).then((data) => {
+    firebaseService.getCustomerOrders(user._id).then((data) => {
       setOrders(data);
     });
   }, [user._id]);

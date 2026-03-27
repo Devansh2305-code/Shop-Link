@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 import { useApp } from '../../context/AppContext';
 import ImageUpload from '../shared/ImageUpload';
 
@@ -78,7 +78,7 @@ export default function VendorRegister() {
 
     setLoading(true);
     try {
-      const result = await apiService.register({
+      const result = await firebaseService.register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),

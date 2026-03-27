@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import apiService from '../../services/api';
+import firebaseService from '../../services/firebase';
 import { useApp } from '../../context/AppContext';
 
 export default function CustomerRegister() {
@@ -41,7 +41,7 @@ export default function CustomerRegister() {
 
     setLoading(true);
     try {
-      const result = await apiService.register({
+      const result = await firebaseService.register({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim(),
@@ -52,7 +52,7 @@ export default function CustomerRegister() {
         setError(result.message || 'Registration failed.');
         return;
       }
-      // User is already logged in via register (token stored in apiService)
+      // User is already authenticated via Firebase after register
       // Manually set user in context
       await login(email.trim().toLowerCase(), password);
       history.push('/customer');
